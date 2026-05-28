@@ -3,12 +3,12 @@ import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import { useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import * as XLSX from "xlsx";
 
@@ -17,14 +17,16 @@ export default function App() {
   const [cargando, setCargando] = useState(false);
   const [mensaje, setMensaje] = useState("");
 
-  // 1. Pedir permiso y cargar contactos
   const cargarContactos = async () => {
     setCargando(true);
     setMensaje("");
 
     const { status } = await Contacts.requestPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert("Permiso denegado", "Necesitamos acceso a tus contactos.");
+      Alert.alert(
+        "Permiso denegado",
+        "Necesitamos acceso a tus contactos para exportarlos."
+      );
       setCargando(false);
       return;
     }
@@ -38,54 +40,61 @@ export default function App() {
     setCargando(false);
   };
 
-  // 2. Exportar a Excel
   const exportarExcel = async () => {
     if (contactos.length === 0) return;
     setCargando(true);
 
-    // Armar los datos
-    const filas = contactos.map((c) => ({
-      Nombre: c.name || "Sin nombre",
-      Telefono: c.phoneNumbers?.[0]?.number || "Sin número",
-    }));
+    try {
+      const filas = contactos.map((c) => ({
+        Nombre: c.name || "Sin nombre",
+        Telefono: c.phoneNumbers?.[0]?.number || "Sin número",
+      }));
 
-    const hoja = XLSX.utils.json_to_sheet(filas);
-    const libro = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(libro, hoja, "Contactos");
+      const hoja = XLSX.utils.json_to_sheet(filas);
+      const libro = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(libro, hoja, "Contactos");
 
-    const archivoBase64 = XLSX.write(libro, {
-      type: "base64",
-      bookType: "xlsx",
-    });
-    const ruta = FileSystem.documentDirectory + "contactos.xlsx";
+      const archivoBase64 = XLSX.write(libro, {
+        type: "base64",
+        bookType: "xlsx",
+      });
 
-    await FileSystem.writeAsStringAsync(ruta, archivoBase64, {
-      encoding: FileSystem.EncodingType.Base64,
-    });
+      const ruta = FileSystem.documentDirectory + "contactos.xlsx";
+      await FileSystem.writeAsStringAsync(ruta, archivoBase64, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
 
-    await Sharing.shareAsync(ruta);
-    setMensaje("Excel exportado con éxito ✅");
-    setCargando(false);
+      await Sharing.shareAsync(ruta);
+      setMensaje("Excel exportado con éxito ✅");
+    } catch (error) {
+      Alert.alert("Error", "No se pudo exportar el archivo Excel.");
+    } finally {
+      setCargando(false);
+    }
   };
 
-  // 3. Exportar a TXT
   const exportarTxt = async () => {
     if (contactos.length === 0) return;
     setCargando(true);
 
-    let contenido = "NOMBRE | TELÉFONO\n" + "─".repeat(40) + "\n";
-    for (const c of contactos) {
-      const nombre = c.name || "Sin nombre";
-      const tel = c.phoneNumbers?.[0]?.number || "Sin número";
-      contenido += `${nombre} | ${tel}\n`;
+    try {
+      let contenido = "NOMBRE | TELÉFONO\n" + "─".repeat(40) + "\n";
+      for (const c of contactos) {
+        const nombre = c.name || "Sin nombre";
+        const tel = c.phoneNumbers?.[0]?.number || "Sin número";
+        contenido += `${nombre} | ${tel}\n`;
+      }
+
+      const ruta = FileSystem.documentDirectory + "contactos.txt";
+      await FileSystem.writeAsStringAsync(ruta, contenido);
+
+      await Sharing.shareAsync(ruta);
+      setMensaje("TXT exportado con éxito ✅");
+    } catch (error) {
+      Alert.alert("Error", "No se pudo exportar el archivo TXT.");
+    } finally {
+      setCargando(false);
     }
-
-    const ruta = FileSystem.documentDirectory + "contactos.txt";
-    await FileSystem.writeAsStringAsync(ruta, contenido);
-
-    await Sharing.shareAsync(ruta);
-    setMensaje("TXT exportado con éxito ✅");
-    setCargando(false);
   };
 
   return (

@@ -4,7 +4,7 @@
     "slug": "exportar-contactos",
     "version": "1.0.0",
     "orientation": "portrait",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "android": {
       "permissions": ["android.permission.READ_CONTACTS"]
     },

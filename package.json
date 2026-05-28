@@ -1,9 +1,9 @@
 {
   "name": "exportar-contactos",
-  "main": "app.js",
+  "main": "index.js",
   "version": "1.0.0",
   "dependencies": {
-    "expo": "54.0.8",
+    "expo": "~54.0.8",
     "expo-contacts": "~14.0.0",
     "expo-file-system": "~19.0.11",
     "expo-sharing": "~12.0.0",
@@ -18,11 +18,9 @@
   },
   "scripts": {
     "start": "expo start",
-    "reset-project": "node ./scripts/reset-project.js",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web",
-    "lint": "expo lint"
+    "web": "expo start --web"
   },
   "private": true
 }
