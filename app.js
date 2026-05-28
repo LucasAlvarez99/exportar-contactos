@@ -1,0 +1,171 @@
+import * as Contacts from "expo-contacts";
+import * as FileSystem from "expo-file-system";
+import * as Sharing from "expo-sharing";
+import { useState } from "react";
+import {
+    ActivityIndicator,
+    Alert,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from "react-native";
+import * as XLSX from "xlsx";
+
+export default function App() {
+  const [contactos, setContactos] = useState([]);
+  const [cargando, setCargando] = useState(false);
+  const [mensaje, setMensaje] = useState("");
+
+  // 1. Pedir permiso y cargar contactos
+  const cargarContactos = async () => {
+    setCargando(true);
+    setMensaje("");
+
+    const { status } = await Contacts.requestPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Permiso denegado", "Necesitamos acceso a tus contactos.");
+      setCargando(false);
+      return;
+    }
+
+    const { data } = await Contacts.getContactsAsync({
+      fields: [Contacts.Fields.Name, Contacts.Fields.PhoneNumbers],
+    });
+
+    setContactos(data);
+    setMensaje(`${data.length} contactos cargados ✅`);
+    setCargando(false);
+  };
+
+  // 2. Exportar a Excel
+  const exportarExcel = async () => {
+    if (contactos.length === 0) return;
+    setCargando(true);
+
+    // Armar los datos
+    const filas = contactos.map((c) => ({
+      Nombre: c.name || "Sin nombre",
+      Telefono: c.phoneNumbers?.[0]?.number || "Sin número",
+    }));
+
+    const hoja = XLSX.utils.json_to_sheet(filas);
+    const libro = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(libro, hoja, "Contactos");
+
+    const archivoBase64 = XLSX.write(libro, {
+      type: "base64",
+      bookType: "xlsx",
+    });
+    const ruta = FileSystem.documentDirectory + "contactos.xlsx";
+
+    await FileSystem.writeAsStringAsync(ruta, archivoBase64, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+
+    await Sharing.shareAsync(ruta);
+    setMensaje("Excel exportado con éxito ✅");
+    setCargando(false);
+  };
+
+  // 3. Exportar a TXT
+  const exportarTxt = async () => {
+    if (contactos.length === 0) return;
+    setCargando(true);
+
+    let contenido = "NOMBRE | TELÉFONO\n" + "─".repeat(40) + "\n";
+    for (const c of contactos) {
+      const nombre = c.name || "Sin nombre";
+      const tel = c.phoneNumbers?.[0]?.number || "Sin número";
+      contenido += `${nombre} | ${tel}\n`;
+    }
+
+    const ruta = FileSystem.documentDirectory + "contactos.txt";
+    await FileSystem.writeAsStringAsync(ruta, contenido);
+
+    await Sharing.shareAsync(ruta);
+    setMensaje("TXT exportado con éxito ✅");
+    setCargando(false);
+  };
+
+  return (
+    <View style={styles.contenedor}>
+      <Text style={styles.icono}>📋</Text>
+      <Text style={styles.titulo}>Exportar Contactos</Text>
+
+      {mensaje !== "" && <Text style={styles.mensaje}>{mensaje}</Text>}
+
+      {cargando ? (
+        <ActivityIndicator
+          size="large"
+          color="#2563eb"
+          style={{ marginTop: 30 }}
+        />
+      ) : (
+        <View style={styles.botones}>
+          <TouchableOpacity style={styles.boton} onPress={cargarContactos}>
+            <Text style={styles.botonTexto}>🔄 Cargar Contactos</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.boton,
+              styles.botonVerde,
+              contactos.length === 0 && styles.botonDesactivado,
+            ]}
+            onPress={exportarExcel}
+            disabled={contactos.length === 0}
+          >
+            <Text style={styles.botonTexto}>📊 Exportar a Excel</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.boton,
+              styles.botonGris,
+              contactos.length === 0 && styles.botonDesactivado,
+            ]}
+            onPress={exportarTxt}
+            disabled={contactos.length === 0}
+          >
+            <Text style={styles.botonTexto}>📄 Exportar a TXT</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  contenedor: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 30,
+    backgroundColor: "#f1f5f9",
+  },
+  icono: { fontSize: 80 },
+  titulo: {
+    fontSize: 24,
+    fontWeight: "bold",
+    marginVertical: 16,
+    color: "#1e293b",
+  },
+  mensaje: {
+    fontSize: 16,
+    color: "#16a34a",
+    marginBottom: 10,
+    textAlign: "center",
+  },
+  botones: { width: "100%", gap: 12, marginTop: 20 },
+  boton: {
+    backgroundColor: "#2563eb",
+    padding: 16,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  botonVerde: { backgroundColor: "#16a34a" },
+  botonGris: { backgroundColor: "#64748b" },
+  botonDesactivado: { opacity: 0.4 },
+  botonTexto: { color: "white", fontSize: 16, fontWeight: "600" },
+});
