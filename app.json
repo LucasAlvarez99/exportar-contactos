@@ -13,6 +13,6 @@
         "NSContactsUsageDescription": "Necesitamos acceso a tus contactos para exportarlos."
       }
     },
-    "plugins": ["expo-contacts", "expo-sharing"]
+    "plugins": ["expo-contacts"]
   }
 }
