@@ -1,5 +1,5 @@
 import * as Contacts from "expo-contacts";
-import * as FileSystem from "expo-file-system/legacy";
+import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import { useState } from "react";
 import {
@@ -66,7 +66,7 @@ export default function App() {
       const ruta = FileSystem.documentDirectory + "contactos.xlsx";
 
       await FileSystem.writeAsStringAsync(ruta, archivoBase64, {
-        encoding: "base64",
+        encoding: FileSystem.EncodingType.Base64,
       });
 
       const puedeCompartir = await Sharing.isAvailableAsync();
@@ -107,7 +107,7 @@ export default function App() {
       const ruta = FileSystem.documentDirectory + "contactos.txt";
 
       await FileSystem.writeAsStringAsync(ruta, contenido, {
-        encoding: "utf8",
+        encoding: FileSystem.EncodingType.UTF8,
       });
 
       const puedeCompartir = await Sharing.isAvailableAsync();
