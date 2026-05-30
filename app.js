@@ -1,5 +1,5 @@
 import * as Contacts from "expo-contacts";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import { useState } from "react";
 import {
@@ -21,23 +21,27 @@ export default function App() {
     setCargando(true);
     setMensaje("");
 
-    const { status } = await Contacts.requestPermissionsAsync();
-    if (status !== "granted") {
-      Alert.alert(
-        "Permiso denegado",
-        "Necesitamos acceso a tus contactos para exportarlos."
-      );
+    try {
+      const { status } = await Contacts.requestPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          "Permiso denegado",
+          "Necesitamos acceso a tus contactos para exportarlos."
+        );
+        return;
+      }
+
+      const { data } = await Contacts.getContactsAsync({
+        fields: [Contacts.Fields.Name, Contacts.Fields.PhoneNumbers],
+      });
+
+      setContactos(data);
+      setMensaje(`${data.length} contactos cargados ✅`);
+    } catch (error) {
+      Alert.alert("Error", "No se pudieron cargar los contactos: " + error.message);
+    } finally {
       setCargando(false);
-      return;
     }
-
-    const { data } = await Contacts.getContactsAsync({
-      fields: [Contacts.Fields.Name, Contacts.Fields.PhoneNumbers],
-    });
-
-    setContactos(data);
-    setMensaje(`${data.length} contactos cargados ✅`);
-    setCargando(false);
   };
 
   const exportarExcel = async () => {
@@ -60,14 +64,26 @@ export default function App() {
       });
 
       const ruta = FileSystem.documentDirectory + "contactos.xlsx";
+
       await FileSystem.writeAsStringAsync(ruta, archivoBase64, {
-        encoding: FileSystem.EncodingType.Base64,
+        encoding: "base64",
       });
 
-      await Sharing.shareAsync(ruta);
+      const puedeCompartir = await Sharing.isAvailableAsync();
+      if (!puedeCompartir) {
+        Alert.alert("Error", "El servicio de compartir no está disponible.");
+        return;
+      }
+
+      await Sharing.shareAsync(ruta, {
+        mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        dialogTitle: "Exportar contactos",
+        UTI: "com.microsoft.excel.xlsx",
+      });
+
       setMensaje("Excel exportado con éxito ✅");
     } catch (error) {
-      Alert.alert("Error", "No se pudo exportar el archivo Excel.");
+      Alert.alert("Error", "No se pudo exportar el archivo Excel: " + error.message);
     } finally {
       setCargando(false);
     }
@@ -78,20 +94,37 @@ export default function App() {
     setCargando(true);
 
     try {
-      let contenido = "NOMBRE | TELÉFONO\n" + "─".repeat(40) + "\n";
+      const lineas = ["NOMBRE | TELÉFONO", "─".repeat(40)];
+
       for (const c of contactos) {
         const nombre = c.name || "Sin nombre";
         const tel = c.phoneNumbers?.[0]?.number || "Sin número";
-        contenido += `${nombre} | ${tel}\n`;
+        lineas.push(`${nombre} | ${tel}`);
       }
 
-      const ruta = FileSystem.documentDirectory + "contactos.txt";
-      await FileSystem.writeAsStringAsync(ruta, contenido);
+      const contenido = lineas.join("\n");
 
-      await Sharing.shareAsync(ruta);
+      const ruta = FileSystem.documentDirectory + "contactos.txt";
+
+      await FileSystem.writeAsStringAsync(ruta, contenido, {
+        encoding: "utf8",
+      });
+
+      const puedeCompartir = await Sharing.isAvailableAsync();
+      if (!puedeCompartir) {
+        Alert.alert("Error", "El servicio de compartir no está disponible.");
+        return;
+      }
+
+      await Sharing.shareAsync(ruta, {
+        mimeType: "text/plain",
+        dialogTitle: "Exportar contactos",
+        UTI: "public.plain-text",
+      });
+
       setMensaje("TXT exportado con éxito ✅");
     } catch (error) {
-      Alert.alert("Error", "No se pudo exportar el archivo TXT.");
+      Alert.alert("Error", "No se pudo exportar el archivo TXT: " + error.message);
     } finally {
       setCargando(false);
     }
