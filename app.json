@@ -6,13 +6,24 @@
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "android": {
-      "permissions": ["android.permission.READ_CONTACTS"]
+      "package": "com.tuusuario.exportarcontactos",
+      "permissions": [
+        "android.permission.READ_CONTACTS",
+        "android.permission.WRITE_CONTACTS"
+      ]
     },
     "ios": {
       "infoPlist": {
         "NSContactsUsageDescription": "Necesitamos acceso a tus contactos para exportarlos."
       }
     },
-    "plugins": ["expo-contacts"]
+    "plugins": [
+      "expo-contacts"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "7ff1f04a-a07f-41a4-b3a8-cc72bb2eaa37"
+      }
+    }
   }
 }
